@@ -44,7 +44,7 @@ if($session_key == "" && $api_key != ""){
 }
 
 //Session-Key in Cookie speichern
-setcookie("session_key", $session_key);
+setcookie("session_key", $session_key, time()+300);
 
 //Neue Unit-Delegation speichern od. alte löschen - POST /delegation
 if($deleg_unit != ""){
@@ -297,9 +297,9 @@ echo "</tbody></table><p>Du kannst auch weitere Delegationen hinzufügen und dei
 			<p>Was willst du delegieren?</p>
 			<form action="index.php" method="post">
 				<select name="deleg" id="deleg" onchange="$(document.getElementById('deleg').value).show();$('#step1').hide();">
-					<option value="">Wähle den delegierten Bereich</option>
-					<option value="#step2unit">Gliederung</option>
-					<option value="#step2area">Themenbereich</option>
+					<option value="">Wähle bitte aus:</option>
+					<option value="#step2unit">Gesamte Gliederung (z.B. Bundesland) delegieren</option>
+					<option value="#step2area">Einzelne Themenbereiche delegieren</option>
 				</select>
 		</div>
 		<div id="step2unit">
