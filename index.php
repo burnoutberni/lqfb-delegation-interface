@@ -193,7 +193,11 @@ usort($array_member, 'cmp');
     <link href="css/bootstrap.css" rel="stylesheet">
     <style type="text/css">
       body {
-				background: #4c2582;
+				background-color: #4c2582;
+				background-image: url('https://github.com/zutrinken/Piraten-Theme/blob/master/images/logo.png?raw=true');
+				background-attachment: fixed;
+				background-repeat: no-repeat;
+				background-position: 80% 5%;
         padding-top: 60px;
         padding-bottom: 40px;
       }
