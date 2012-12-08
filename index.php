@@ -39,6 +39,7 @@ if($session_key == "" && $api_key != ""){
 //Session-Key in Cookie speichern
 setcookie("session_key", $session_key, time()+300);
 
+//POST-Request für Unit-Delegation
 if($deleg_unit != "" && $deleg_member != ""){
 	if($deleg_member == "!!delete"){
 		$trustee_id = "&delete=true";
@@ -57,6 +58,7 @@ if($deleg_unit != "" && $deleg_member != ""){
 	$buffer = curl_exec($ch);
 }
 
+//POST-Request für Area-Delegation
 if($deleg_area != "" && $deleg_member != ""){
 	if($deleg_member == "!!delete"){
 		$trustee_id = "&delete=true";
@@ -91,6 +93,15 @@ $string_info = file_get_contents($url_info);
 $json_info = json_decode($string_info,true);
 $current_member_id = $json_info['current_member_id'];
 
+//Mitgliedschaften in den Units werden aus der API gezogen, JSON => array
+$url_privilege = $base_url . "privilege?session_key=" . $session_key . "&member_id=" . $current_member_id . "&voting_right=true";
+$string_privilege = file_get_contents($url_privilege);
+$json_privilege = json_decode($string_privilege,true);
+for ($i = 0; $i < count($json_privilege['result']); $i++) {
+	$array_privilege[$i] = $json_privilege['result'][$i]['unit_id'];
+}
+$string_privilege_result = implode(",", $array_privilege);
+
 //Alle Units werden aus der API gezogen, JSON => array
 $url_unit = $base_url . "unit?session_key=" . $session_key;
 $string_unit = file_get_contents($url_unit);
@@ -100,13 +111,17 @@ for ($i = 0; $i < count($json_unit['result']); $i++) {
 	$array_unit[$i][1] = $json_unit['result'][$i]['name'];
 }
 
-//Areas der Unit1 werden aus der API gezogen, JSON => array
-$url_area = $base_url . "area?session_key=" . $session_key . "&unit_id=1";
+//Areas der Units mit Voting-Privilege werden aus der API gezogen, JSON => array
+$url_area = $base_url . "area?session_key=" . $session_key . "&unit_id=" . $string_privilege_result;
 $string_area = file_get_contents($url_area);
 $json_area = json_decode($string_area,true);
 for ($i = 0; $i < count($json_area['result']); $i++) {
-	$array_area[$i][0] = $json_area['result'][$i]['id'];
-	$array_area[$i][1] = "Bundesweite Themen / " . $json_area['result'][$i]['name'];
+	for ($e = 0; $e < count($array_unit); $e++) {
+		if($json_area['result'][$i]['unit_id'] == $array_unit[$e][0]) {
+			$array_area[$i][0] = $json_area['result'][$i]['id'];
+			$array_area[$i][1] = $array_unit[$e][1] . " / " . $json_area['result'][$i]['name'];
+		}
+	}
 }
 
 //Delegierte Units werden aus der API gezogen, JSON => array
@@ -118,8 +133,8 @@ for ($i = 0; $i < count($json_delegation_unit['result']); $i++) {
 	$array_delegation_unit[$i][1] = $json_delegation_unit['result'][$i]['trustee_id'];
 }
 
-//Delegierte Areas aus Unit1 werden aus der API gezogen, JSON => array
-$url_delegation_area = $base_url . "delegation?scope=area&direction=out&unit_id=1&session_key=" . $session_key . "&member_id=" . $current_member_id;
+//Delegierte Areas aus den Units mit Voting-Privilege werden aus der API gezogen, JSON => array
+$url_delegation_area = $base_url . "delegation?scope=area&direction=out&unit_id=" . $string_privilege_result . "&session_key=" . $session_key . "&member_id=" . $current_member_id;
 $string_delegation_area = file_get_contents($url_delegation_area);
 $json_delegation_area = json_decode($string_delegation_area,true);
 for ($i = 0; $i < count($json_delegation_area['result']); $i++) {
@@ -139,8 +154,9 @@ function cmp($a,$b){
     return $cmp;
 }
 
-//Nutzer werden alphabetisch nach Namen sortiert
+//Nutzer und Areas werden alphabetisch nach Namen sortiert
 usort($array_member, 'cmp');
+usort($array_area, 'cmp');
 ?>
 
 <!DOCTYPE html>
