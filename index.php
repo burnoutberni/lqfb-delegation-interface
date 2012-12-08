@@ -1,4 +1,7 @@
 <?
+//URL des API-Servers
+$base_url = "https://lfapi.piratenpartei.at/";
+
 //API-Key aus Form
 $api_key = $_POST["api_key"];
 
@@ -18,26 +21,16 @@ $deleg_member = $_POST["deleg_member"];
 
 //Neuen Session-Key erzeugen - POST /session
 if($session_key == "" && $api_key != ""){
-	$host = '88.198.24.116';
-	$path = '/session';
-	$data = 'key='.urlencode($api_key);
-	$fp = fsockopen($host, 25520, $errno, $errstr, 30);
-	if (!$fp) {
-		$buffer .= "$errstr ($errno)<br />\n";
-	} else {
-		$out = "POST ".$path." HTTP/1.1\r\n";
-		$out .= "Host: ".$host."\r\n";
-		$out .= "Content-Type: application/x-www-form-urlencoded; charset=utf-8\r\n";
-		$out .= "Content-Length: ".strlen($data)."\r\n";
-		$out .= "Connection: Close\r\n\r\n";
-		$out .= $data;
-		fwrite($fp, $out);
- 
-		while (!feof($fp)) {
-			$buffer .= fgets($fp, 128);
-		}
-		fclose($fp);
-	}
+	$ch = curl_init();
+	$post_key = "key=".$api_key;
+	$post_url = $base_url . "session";
+	curl_setopt($ch, CURLOPT_URL, $post_url);
+	curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+	curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+	curl_setopt($ch, CURLOPT_POST, true);
+	curl_setopt($ch, CURLOPT_POSTFIELDS, $post_key);
+	curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, true);
+	$buffer = curl_exec($ch);
 	$session_post = explode("\"session_key\":\"",$buffer);
 	$session_post1 = explode("\",\"status\":",$session_post[1]);
 	$session_key = $session_post1[0];
@@ -46,71 +39,41 @@ if($session_key == "" && $api_key != ""){
 //Session-Key in Cookie speichern
 setcookie("session_key", $session_key, time()+300);
 
-//Neue Unit-Delegation speichern od. alte löschen - POST /delegation
-if($deleg_unit != ""){
-	if($deleg_member != ""){
-		if($deleg_member == "!!delete"){
-			$trustee_id = "&delete=true";
-		} else{
-			$trustee_id = "&trustee_id=".urlencode($deleg_member);
-		}
-		$host = '88.198.24.116';
-		$path = '/delegation';
-		$data = 'unit_id='.urlencode($deleg_unit).$trustee_id.'&session_key='.urlencode($session_key);
-		$fp = fsockopen($host, 25520, $errno, $errstr, 30);
-		if (!$fp) {
-			$buffer .= "$errstr ($errno)<br />\n";
-		} else {
-			$out = "POST ".$path." HTTP/1.1\r\n";
-			$out .= "Host: ".$host."\r\n";
-			$out .= "Content-Type: application/x-www-form-urlencoded; charset=utf-8\r\n";
-			$out .= "Content-Length: ".strlen($data)."\r\n";
-			$out .= "Connection: Close\r\n\r\n";
-			$out .= $data;
-			fwrite($fp, $out);
-	 
-			while (!feof($fp)) {
-				$buffer .= fgets($fp, 128);
-			}
-			fclose($fp);
-		}
+if($deleg_unit != "" && $deleg_member != ""){
+	if($deleg_member == "!!delete"){
+		$trustee_id = "&delete=true";
+	} else{
+		$trustee_id = "&trustee_id=".urlencode($deleg_member);
 	}
+	$ch = curl_init();
+	$post_key = "unit_id=".urlencode($deleg_unit).$trustee_id.'&session_key='.urlencode($session_key);
+	$post_url = $base_url . "delegation";
+	curl_setopt($ch, CURLOPT_URL, $post_url);
+	curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+	curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+	curl_setopt($ch, CURLOPT_POST, true);
+	curl_setopt($ch, CURLOPT_POSTFIELDS, $post_key);
+	curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, true);
+	$buffer = curl_exec($ch);
 }
 
-//Neue Area-Delegation speichern od. alte löschen - POST /delegation
-if($deleg_area != ""){
-	if($deleg_member != ""){
-		if($deleg_member == "!!delete"){
-			$trustee_id = "&delete=true";
-		} else{
-			$trustee_id = "&trustee_id=".urlencode($deleg_member);
-		}
-		$host = '88.198.24.116';
-		$path = '/delegation';
-		$data = 'area_id='.urlencode($deleg_area).$trustee_id.'&session_key='.urlencode($session_key);
-		$fp = fsockopen($host, 25520, $errno, $errstr, 30);
-		if (!$fp) {
-			$buffer .= "$errstr ($errno)<br />\n";
-		} else {
-			$out = "POST ".$path." HTTP/1.1\r\n";
-			$out .= "Host: ".$host."\r\n";
-			$out .= "Content-Type: application/x-www-form-urlencoded; charset=utf-8\r\n";
-			$out .= "Content-Length: ".strlen($data)."\r\n";
-			$out .= "Connection: Close\r\n\r\n";
-			$out .= $data;
-			fwrite($fp, $out);
-	 
-			while (!feof($fp)) {
-				$buffer .= fgets($fp, 128);
-			}
-			fclose($fp);
-		}
+if($deleg_area != "" && $deleg_member != ""){
+	if($deleg_member == "!!delete"){
+		$trustee_id = "&delete=true";
+	} else{
+		$trustee_id = "&trustee_id=".urlencode($deleg_member);
 	}
+	$ch = curl_init();
+	$post_key = "area_id=".urlencode($deleg_area).$trustee_id.'&session_key='.urlencode($session_key);
+	$post_url = $base_url . "delegation";
+	curl_setopt($ch, CURLOPT_URL, $post_url);
+	curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+	curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+	curl_setopt($ch, CURLOPT_POST, true);
+	curl_setopt($ch, CURLOPT_POSTFIELDS, $post_key);
+	curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, true);
+	$buffer = curl_exec($ch);
 }
-
-//URL des API-Servers
-$base_url = "http://88.198.24.116:25520/";
-
 
 //User-Liste werden aus der API gezogen, JSON => array
 $url_member = $base_url . "member?limit=1000&session_key=" . $session_key;
@@ -229,6 +192,7 @@ usort($array_member, 'cmp');
     <div class="container">
       <div class="row">
         <div class="span8">
+<div class="alert alert-error"><?echo $buffer;?></div>
 					<?if($session_key == ""){echo "
 <div class=\"well\">
 	<h1>lqfb-delegation-interface</h1>
