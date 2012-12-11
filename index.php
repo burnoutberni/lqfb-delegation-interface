@@ -31,9 +31,8 @@ if($session_key == "" && $api_key != ""){
 	curl_setopt($ch, CURLOPT_POSTFIELDS, $post_key);
 	curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, true);
 	$buffer = curl_exec($ch);
-	$session_post = explode("\"session_key\":\"",$buffer);
-	$session_post1 = explode("\",\"status\":",$session_post[1]);
-	$session_key = $session_post1[0];
+	$json_buffer = json_decode($buffer,true);
+	$session_key = $json_buffer['session_key'];
 }
 
 //Session-Key in Cookie speichern
@@ -157,6 +156,10 @@ function cmp($a,$b){
 //Nutzer und Areas werden alphabetisch nach Namen sortiert
 usort($array_member, 'cmp');
 usort($array_area, 'cmp');
+
+//Fehlermeldungen
+$json_buffer = json_decode($buffer,true);
+$error = $json_buffer['error'];
 ?>
 
 <!DOCTYPE html>
@@ -208,8 +211,11 @@ usort($array_area, 'cmp');
     <div class="container">
       <div class="row">
         <div class="span8">
-<div class="alert alert-error"><?echo $buffer;?></div>
-					<?if($session_key == ""){echo "
+<?
+if($error != "") {
+	echo "<div class=\"alert alert-error\"><button type=\"button\" class=\"close\" data-dismiss=\"alert\">&times;</button>".$error."</div>";
+}
+if($session_key == ""){echo "
 <div class=\"well\">
 	<h1>lqfb-delegation-interface</h1>
 	<p>Hier kannst du deine Delegationen für die LiquidFeedback-Instanz der Piratenpartei Österreichs einfach und schnell erstellen, löschen und ändern. Dafür musst du dich mit deinem API-Schlüssel anmelden.</p>
@@ -221,7 +227,7 @@ usort($array_area, 'cmp');
 	</p>
 </div>
 ";
-} else {echo "<div class=\"well\"><h2>Delegationen</h2><p>Hier siehst du deine bisherigen Delegationen:</p><table class=\"table table-hover\"><thead><tr><th>Delegierter Bereich</th><th>Delegiert an</th></tr></thead><tbody>";
+} else {echo "<div class=\"well\"><a type=\"btn\" class=\"close\" href=\"index.php?logout=true\">Abmelden</a><h2>Delegationen</h2><p><a class=\"btn btn-small btn-success\" href=\"#change\" data-toggle=\"modal\">+ Delegation hinzufügen</a></p><p>Hier siehst du deine bisherigen Delegationen:</p><table class=\"table table-hover\"><thead><tr><th>Delegierter Bereich</th><th colspan=\"2\">Delegiert an</th></tr></thead><tbody>";
 //Unit-Delegationen aus array in anderes array
 for ($i = 0; $i < count($array_delegation_unit); $i++) {
 	for ($e = 0; $e < count($array_unit); $e++) {
@@ -232,6 +238,7 @@ for ($i = 0; $i < count($array_delegation_unit); $i++) {
 	for ($o = 0; $o < count($array_member); $o++) {
 		if($array_delegation_unit[$i][1] == $array_member[$o][0]){
 			$delegation_output_unit[$i][] = $array_member[$o][1];
+			$delegation_output_unit[$i][] = $array_delegation_unit[$i][0];
 		}
 	}
 }
@@ -246,34 +253,55 @@ for ($i = 0; $i < count($array_delegation_area); $i++) {
 	for ($o = 0; $o < count($array_member); $o++) {
 		if($array_delegation_area[$i][1] == $array_member[$o][0]){
 			$delegation_output_area[$i][] = $array_member[$o][1];
+			$delegation_output_area[$i][] = $array_delegation_area[$i][0];
 		}
 	}
 }
 
 //Unit-Array in Tabelle ausgeben
 for ($i = 0; $i < count($delegation_output_unit); $i++) {
-	echo "<tr><td>" . $delegation_output_unit[$i][0] . "</td><td>" . $delegation_output_unit[$i][1] . "</td></tr>";
+	echo "<tr><td>" . $delegation_output_unit[$i][0] . "</td><td>" . $delegation_output_unit[$i][1] . "</td><td><a onclick=\"$('#delete_unit').text('" . $delegation_output_unit[$i][0] . "');$('#delete_user').text('" . $delegation_output_unit[$i][1] . "');$('#delete_deleg_unit').attr('value','" . $delegation_output_unit[$i][2] . "');$('#delete_deleg_area').attr('value','');\" href=\"#delete\" data-toggle=\"modal\"><i class=\"icon-remove\"></i></a></td></tr>";
 }
 
 //Area-Array in Tabelle ausgeben
 for ($i = 0; $i < count($delegation_output_area); $i++) {
-	echo "<tr><td>" . $delegation_output_area[$i][0] . "</td><td>" . $delegation_output_area[$i][1] . "</td></tr>";
+	echo "<tr><td>" . $delegation_output_area[$i][0] . "</td><td>" . $delegation_output_area[$i][1] . "</td><td><a onclick=\"$('#delete_unit').text('" . $delegation_output_area[$i][0] . "');$('#delete_user').text('" . $delegation_output_area[$i][1] . "');$('#delete_deleg_area').attr('value','" . $delegation_output_area[$i][2] . "');$('#delete_deleg_unit').attr('value','');\" href=\"#delete\" data-toggle=\"modal\"><i class=\"icon-remove\"></i></a></td></tr>";
 }
 
 //"Fehlermeldung"
 if($delegation_output_unit[0][0] == "" && $delegation_output_area[0][0] == ""){
 	echo "<tr><td>Bisher keine Delegationen angelegt!</td><td></td></tr>";
 }
-echo "</tbody></table><p>Du kannst auch weitere Delegationen hinzufügen und deine bisherigen Delegationen ändern oder löschen:</p><p><a class=\"btn\" href=\"#change\" data-toggle=\"modal\">Delegationen ändern & hinzufügen & entfernen</a></p><div><a href=\"index.php?logout=true\">Abmelden</a></div></div><!--/.well -->";
+echo "</tbody></table></div><!--/.well -->";
 }
 ?>
 
 
 <!-- Modal -->
-<div id="change" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+<div id="delete" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="ModalDelete" aria-hidden="true">
 	<div class="modal-header">
 		<button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
-		<h3 id="myModalLabel">Delegationen</h3>
+		<h3 id="ModalDelete">Delegation löschen</h3>
+	</div>
+	<div class="modal-body">
+		<p>Bist du dir sicher, dass du die Delegation für den Bereich "<span id="delete_unit"></span>" an den Nutzer "<span id="delete_user"></span>" löschen willst?</p>
+		<form action="index.php" method="post">
+		<input type="hidden" name="deleg_unit" id="delete_deleg_unit" value="">
+		<input type="hidden" name="deleg_area" id="delete_deleg_area" value="">
+		<input type="hidden" name="deleg_member" value="!!delete">
+	</div>
+	<div class="modal-footer">
+		<button class="btn" data-dismiss="modal" aria-hidden="true">Nein, abbrechen</button>
+		<button class="btn btn-primary" type="submit">Ja, löschen</button>
+		</form>
+	</div>
+</div>
+
+<!-- Modal -->
+<div id="change" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="ModalChange" aria-hidden="true">
+	<div class="modal-header">
+		<button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+		<h3 id="ModalChange">Delegationen</h3>
 	</div>
 	<div class="modal-body">
 		<div id="step1">
@@ -289,7 +317,7 @@ echo "</tbody></table><p>Du kannst auch weitere Delegationen hinzufügen und dei
 		<div id="step2unit">
 			<h4>Schritt 2.</h4>
 			<p>Welche Gliederung willst du delegieren?</p>
-			<select name="deleg_unit" onchange="$('#step3').show();$('#step2unit').hide();">
+			<select name="deleg_unit" id="deleg_unit" onchange="$('#step3').show();$('#step2unit').hide();">
 				<option value="">Wähle eine Gliederung</option>
 <?
 //Alle Units auflisten
@@ -302,7 +330,7 @@ for ($i = 0; $i < count($array_unit); $i++) {
 		<div id="step2area">
 			<h4>Schritt 2.</h4>
 			<p>Welchen Themenbereich willst du delegieren?</p>
-			<select name="deleg_area" onchange="$('#step3').show();$('#step2area').hide();">
+			<select name="deleg_area" id="deleg_area" onchange="$('#step3').show();$('#step2area').hide();">
 				<option value="">Wähle einen Themenbereich</option>
 <?
 //Alle Units auflisten
@@ -315,7 +343,7 @@ for ($i = 0; $i < count($array_area); $i++) {
 		<div id="step3">
 			<h4>Schritt 3.</h4>
 			<p>An wen willst du diese Gliederung delegieren?</p>
-			<select name="deleg_member">
+			<select name="deleg_member" id="deleg_member">
 				<option value="">Wähle einen Nutzer</option>
 				<option value="!!delete">--Delegation aufheben--</option>
 <?
