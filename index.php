@@ -186,9 +186,6 @@ $error = $json_buffer['error'];
 			footer {
 				color: white;
 			}
-			#step2unit, #step2area , #step3 {
-				display: none;
-			}
     </style>
     </style>
     <link href="css/bootstrap-responsive.css" rel="stylesheet">
@@ -227,7 +224,7 @@ if($session_key == ""){echo "
 	</p>
 </div>
 ";
-} else {echo "<div class=\"well\"><a type=\"btn\" class=\"close\" href=\"index.php?logout=true\">Abmelden</a><h2>Delegationen</h2><p><a class=\"btn btn-small btn-success\" href=\"#change\" data-toggle=\"modal\">+ Delegation hinzufügen</a></p><p>Hier siehst du deine bisherigen Delegationen:</p><table class=\"table table-hover\"><thead><tr><th>Delegierter Bereich</th><th colspan=\"2\">Delegiert an</th></tr></thead><tbody>";
+} else {echo "<div class=\"well\"><a type=\"btn\" class=\"close\" href=\"index.php?logout=true\">Abmelden</a><h2>Delegationen</h2><p><a class=\"btn btn-small btn-success\" href=\"#change\" onclick=\"$('#step1').show();$('#step2unit').hide();$('#step2area').hide();$('#step3').hide();$('#select_deleg').attr('selected',true);$('#select_deleg_unit').attr('selected',true);$('#select_deleg_area').attr('selected',true);$('#select_deleg_member').attr('selected',true);\" data-toggle=\"modal\">+ Delegation hinzufügen</a></p><p>Hier siehst du deine bisherigen Delegationen:</p><table class=\"table table-hover\"><thead><tr><th>Delegierter Bereich</th><th colspan=\"2\">Delegiert an</th></tr></thead><tbody>";
 //Unit-Delegationen aus array in anderes array
 for ($i = 0; $i < count($array_delegation_unit); $i++) {
 	for ($e = 0; $e < count($array_unit); $e++) {
@@ -309,7 +306,7 @@ echo "</tbody></table></div><!--/.well -->";
 			<p>Was willst du delegieren?</p>
 			<form action="index.php" method="post">
 				<select name="deleg" id="deleg" onchange="$(document.getElementById('deleg').value).show();$('#step1').hide();">
-					<option value="">Wähle bitte aus:</option>
+					<option value="" id="select_deleg">Wähle bitte aus:</option>
 					<option value="#step2unit">Gesamte Gliederung (z.B. Bundesland) delegieren</option>
 					<option value="#step2area">Einzelne Themenbereiche delegieren</option>
 				</select>
@@ -318,11 +315,15 @@ echo "</tbody></table></div><!--/.well -->";
 			<h4>Schritt 2.</h4>
 			<p>Welche Gliederung willst du delegieren?</p>
 			<select name="deleg_unit" id="deleg_unit" onchange="$('#step3').show();$('#step2unit').hide();">
-				<option value="">Wähle eine Gliederung</option>
+				<option value="" id="select_deleg_unit">Wähle eine Gliederung</option>
 <?
 //Alle Units auflisten
 for ($i = 0; $i < count($array_unit); $i++) {
-	echo "<option value=\"" . $array_unit[$i][0] . "\">" . $array_unit[$i][1] . "</option>";
+	for ($e = 0; $e < count($array_privilege); $e++) {
+		if($array_unit[$i][0] == $array_privilege[$e]) {
+			echo "<option value=\"" . $array_unit[$i][0] . "\">" . $array_unit[$i][1] . "</option>";
+		}
+	}
 }
 ?>
 			</select>
@@ -331,7 +332,7 @@ for ($i = 0; $i < count($array_unit); $i++) {
 			<h4>Schritt 2.</h4>
 			<p>Welchen Themenbereich willst du delegieren?</p>
 			<select name="deleg_area" id="deleg_area" onchange="$('#step3').show();$('#step2area').hide();">
-				<option value="">Wähle einen Themenbereich</option>
+				<option value="" id="select_deleg_area">Wähle einen Themenbereich</option>
 <?
 //Alle Units auflisten
 for ($i = 0; $i < count($array_area); $i++) {
@@ -344,7 +345,7 @@ for ($i = 0; $i < count($array_area); $i++) {
 			<h4>Schritt 3.</h4>
 			<p>An wen willst du diese Gliederung delegieren?</p>
 			<select name="deleg_member" id="deleg_member">
-				<option value="">Wähle einen Nutzer</option>
+				<option value="" id="select_deleg_member">Wähle einen Nutzer</option>
 				<option value="!!delete">--Delegation aufheben--</option>
 <?
 //Alle Nutzer auflisten
@@ -358,7 +359,7 @@ for ($i = 0; $i < count($array_member); $i++) {
 		</div>
 	</div>
 	<div class="modal-footer">
-		<button class="btn" data-dismiss="modal" aria-hidden="true" onclick="$('#step1').show();$('#step2unit').hide();$('#step2area').hide();$('#step3').hide();">Abbrechen</button>
+		<button class="btn" data-dismiss="modal" aria-hidden="true">Abbrechen</button>
 		<button class="btn btn-primary" type="submit">Änderungen speichern</button>
 		</form>
 	</div>
