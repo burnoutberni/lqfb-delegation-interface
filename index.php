@@ -92,6 +92,19 @@ $string_info = file_get_contents($url_info);
 $json_info = json_decode($string_info,true);
 $current_member_id = $json_info['current_member_id'];
 
+//Name des derzeitigen Nutzers wird gesucht (und hoffentlich gefunden ;) )
+for ($i = 0; $i < count($array_member); $i++) {
+	if($array_member[$i][0] == $current_member_id){
+		$current_member_name = $array_member[$i][1];
+	}
+}
+
+//Bild des derzeitigen Nutzers
+$url_image = $base_url . "member_image?session_key=" . $session_key . "&member_id=" . $current_member_id;
+$string_image = file_get_contents($url_image);
+$json_image = json_decode($string_image,true);
+$current_member_image = $json_image['result'][0]['data'];
+
 //Mitgliedschaften in den Units werden aus der API gezogen, JSON => array
 $url_privilege = $base_url . "privilege?session_key=" . $session_key . "&member_id=" . $current_member_id . "&voting_right=true";
 $string_privilege = file_get_contents($url_privilege);
@@ -166,20 +179,16 @@ $error = $json_buffer['error'];
 <html lang="en">
   <head>
     <meta charset="utf-8">
-    <title>LiquidFeedback</title>
+    <title>lqfb-delegation-interface</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Testing Interface powered by LiquidFeedback-APIs">
-    <meta name="author" content="Bernhard Hayden">
+    <meta name="description" content="Einfaches Interface, um Delegationen der LiquidFeedback-Instanz der Piratenpartei Österreichs zu bearbeiten.">
+    <meta name="author" content="Bernhard 'burnoutberni' Hayden">
 
     <!-- Le styles -->
     <link href="css/bootstrap.css" rel="stylesheet">
     <style type="text/css">
       body {
 				background-color: #4c2582;
-				background-image: url('https://github.com/zutrinken/Piraten-Theme/blob/master/images/logo.png?raw=true');
-				background-attachment: fixed;
-				background-repeat: no-repeat;
-				background-position: 80% 5%;
         padding-top: 60px;
         padding-bottom: 40px;
       }
@@ -195,8 +204,9 @@ $error = $json_buffer['error'];
       <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
     <![endif]-->
 
-    <!-- Fav and touch icons
-    <link rel="shortcut icon" href="ico/favicon.ico">
+    <link rel="shortcut icon" href="favicon.ico">
+
+    <!-- Touch icons
     <link rel="apple-touch-icon-precomposed" sizes="144x144" href="ico/apple-touch-icon-144-precomposed.png">
     <link rel="apple-touch-icon-precomposed" sizes="114x114" href="ico/apple-touch-icon-114-precomposed.png">
     <link rel="apple-touch-icon-precomposed" sizes="72x72" href="ico/apple-touch-icon-72-precomposed.png">
@@ -215,6 +225,9 @@ if($error != "") {
 if($session_key == ""){echo "
 <div class=\"well\">
 	<h1>lqfb-delegation-interface</h1>
+	<p>
+		Die Piratenpartei Österreichs verwendet <a href=\"https://lqfb.piratenpartei.at\">LiquidFeedback</a>, um ihr Programm zu erweitern und zu verändern sowie um Partei-interne Regelwerke zu überarbeiten. Eine der Funktionen von LiquidFeedback ist die Möglichkeit der Delegation. Der Nutzer kann jederzeit sein Stimmgewicht für einzelne Themen, Themenbereiche oder Gliederungen auf eine andere Person übertragen. Diese Delegationen können wiederum jederzeit verändert oder zurückgezogen werden.
+	</p>
 	<p>Hier kannst du deine Delegationen für die LiquidFeedback-Instanz der Piratenpartei Österreichs einfach und schnell erstellen, löschen und ändern. Dafür musst du dich mit deinem API-Schlüssel anmelden.</p>
 	<p>
 		<form class=\"form-inline\" action=\"index.php\" method=\"post\">
@@ -224,7 +237,23 @@ if($session_key == ""){echo "
 	</p>
 </div>
 ";
-} else {echo "<div class=\"well\"><a type=\"btn\" class=\"close\" href=\"index.php?logout=true\">Abmelden</a><h2>Delegationen</h2><p><a class=\"btn btn-small btn-success\" href=\"#change\" onclick=\"$('#step1').show();$('#step2unit').hide();$('#step2area').hide();$('#step3').hide();$('#select_deleg').attr('selected',true);$('#select_deleg_unit').attr('selected',true);$('#select_deleg_area').attr('selected',true);$('#select_deleg_member').attr('selected',true);\" data-toggle=\"modal\">+ Delegation hinzufügen</a></p><p>Hier siehst du deine bisherigen Delegationen:</p><table class=\"table table-hover\"><thead><tr><th>Delegierter Bereich</th><th colspan=\"2\">Delegiert an</th></tr></thead><tbody>";
+} else {echo "
+<div class=\"well\">
+	<h1>lqfb-delegation-interface</h1>
+	<p>
+		Hier kannst du deine Delegationen ansehen, bearbeiten und löschen sowie neue Delegationen hinzufügen:
+	</p>
+	<a class=\"btn btn-success btn-large\" href=\"#add\" onclick=\"$('#step1').show();$('#step2unit').hide();$('#step2area').hide();$('#step3').hide();$('#select_deleg').attr('selected',true);$('#select_deleg_unit').attr('selected',true);$('#select_deleg_area').attr('selected',true);$('#select_deleg_member').attr('selected',true);\" data-toggle=\"modal\">Delegation hinzufügen</a>
+</div>
+<div class=\"well\" id=\"delegation_show\">
+	<table class=\"table table-hover\">
+		<thead>
+			<tr>
+				<th>Delegierter Bereich</th>
+				<th colspan=\"2\">Delegiert an</th>
+			</tr>
+		</thead>
+		<tbody>";
 //Unit-Delegationen aus array in anderes array
 for ($i = 0; $i < count($array_delegation_unit); $i++) {
 	for ($e = 0; $e < count($array_unit); $e++) {
@@ -257,24 +286,54 @@ for ($i = 0; $i < count($array_delegation_area); $i++) {
 
 //Unit-Array in Tabelle ausgeben
 for ($i = 0; $i < count($delegation_output_unit); $i++) {
-	echo "<tr><td>" . $delegation_output_unit[$i][0] . "</td><td>" . $delegation_output_unit[$i][1] . "</td><td><a onclick=\"$('#delete_unit').text('" . $delegation_output_unit[$i][0] . "');$('#delete_user').text('" . $delegation_output_unit[$i][1] . "');$('#delete_deleg_unit').attr('value','" . $delegation_output_unit[$i][2] . "');$('#delete_deleg_area').attr('value','');\" href=\"#delete\" data-toggle=\"modal\"><i class=\"icon-remove\"></i></a></td></tr>";
+	echo "<tr><td>" . $delegation_output_unit[$i][0] . "</td><td>" . $delegation_output_unit[$i][1] . "</td><td><a onclick=\"$('#change_unit').text('" . $delegation_output_unit[$i][0] . "');$('#change_user').text('" . $delegation_output_unit[$i][1] . "');$('#change_deleg_unit').attr('value','" . $delegation_output_unit[$i][2] . "');$('#change_deleg_area').attr('value','');\" href=\"#change\" data-toggle=\"modal\"><i class=\"icon-wrench\"></i></a></td><td><a onclick=\"$('#delete_unit').text('" . $delegation_output_unit[$i][0] . "');$('#delete_user').text('" . $delegation_output_unit[$i][1] . "');$('#delete_deleg_unit').attr('value','" . $delegation_output_unit[$i][2] . "');$('#delete_deleg_area').attr('value','');\" href=\"#delete\" data-toggle=\"modal\"><i class=\"icon-trash\"></i></a></td></tr>";
 }
 
 //Area-Array in Tabelle ausgeben
 for ($i = 0; $i < count($delegation_output_area); $i++) {
-	echo "<tr><td>" . $delegation_output_area[$i][0] . "</td><td>" . $delegation_output_area[$i][1] . "</td><td><a onclick=\"$('#delete_unit').text('" . $delegation_output_area[$i][0] . "');$('#delete_user').text('" . $delegation_output_area[$i][1] . "');$('#delete_deleg_area').attr('value','" . $delegation_output_area[$i][2] . "');$('#delete_deleg_unit').attr('value','');\" href=\"#delete\" data-toggle=\"modal\"><i class=\"icon-remove\"></i></a></td></tr>";
+	echo "<tr><td>" . $delegation_output_area[$i][0] . "</td><td>" . $delegation_output_area[$i][1] . "</td><td><a onclick=\"$('#change_unit').text('" . $delegation_output_area[$i][0] . "');$('#change_user').text('" . $delegation_output_area[$i][1] . "');$('#change_deleg_area').attr('value','" . $delegation_output_area[$i][2] . "');$('#change_deleg_unit').attr('value','');\" href=\"#change\" data-toggle=\"modal\"><i class=\"icon-wrench\"></i></a></td><td><a onclick=\"$('#delete_unit').text('" . $delegation_output_area[$i][0] . "');$('#delete_user').text('" . $delegation_output_area[$i][1] . "');$('#delete_deleg_area').attr('value','" . $delegation_output_area[$i][2] . "');$('#delete_deleg_unit').attr('value','');\" href=\"#delete\" data-toggle=\"modal\"><i class=\"icon-trash\"></i></a></td></tr>";
 }
 
 //"Fehlermeldung"
 if($delegation_output_unit[0][0] == "" && $delegation_output_area[0][0] == ""){
-	echo "<tr><td>Bisher keine Delegationen angelegt!</td><td></td></tr>";
+	echo "<tr><td>Bisher keine Delegationen angelegt!</td><td></td><td></td><td></td></tr>";
 }
 echo "</tbody></table></div><!--/.well -->";
 }
 ?>
 
+<!-- Modal change -->
+<div id="change" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="ModalChange" aria-hidden="true">
+	<div class="modal-header">
+		<button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+		<h3 id="ModalChange">Delegation ändern</h3>
+	</div>
+	<div class="modal-body">
+		<p>Du delegierst derzeit den Bereich "<span id="change_unit"></span>" an den Nutzer "<span id="change_user"></span>". Auf wen willst du in Zukunft delegieren?</p>
+		<form action="index.php" method="post">
+		<input type="hidden" name="deleg_unit" id="change_deleg_unit" value="">
+		<input type="hidden" name="deleg_area" id="change_deleg_area" value="">
+		<select name="deleg_member" id="deleg_member">
+			<option value="" id="select_deleg_member">Wähle einen Nutzer</option>
+			<option value="!!delete">--Delegation aufheben--</option>
+<?
+//Alle Nutzer auflisten
+for ($i = 0; $i < count($array_member); $i++) {
+	if($array_member[$i][1] != ""){
+		echo "<option value=\"" . $array_member[$i][0] . "\">" . $array_member[$i][1] . "</option>";
+	}
+}
+?>
+		</select>
+	</div>
+	<div class="modal-footer">
+		<button class="btn" data-dismiss="modal" aria-hidden="true">Abbrechen</button>
+		<button class="btn btn-primary" type="submit">Speichern</button>
+		</form>
+	</div>
+</div>
 
-<!-- Modal -->
+<!-- Modal delete -->
 <div id="delete" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="ModalDelete" aria-hidden="true">
 	<div class="modal-header">
 		<button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
@@ -294,11 +353,11 @@ echo "</tbody></table></div><!--/.well -->";
 	</div>
 </div>
 
-<!-- Modal -->
-<div id="change" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="ModalChange" aria-hidden="true">
+<!-- Modal add -->
+<div id="add" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="ModalAdd" aria-hidden="true">
 	<div class="modal-header">
 		<button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
-		<h3 id="ModalChange">Delegationen</h3>
+		<h3 id="ModalAdd">Delegation hinzufügen</h3>
 	</div>
 	<div class="modal-body">
 		<div id="step1">
@@ -365,11 +424,14 @@ for ($i = 0; $i < count($array_member); $i++) {
 	</div>
 </div>
         </div><!--/span-->
+				<? if($session_key != "") {
+					include 'sidebar.php';
+				}?>
       </div><!--/row-->
 
       <footer>
         <p>Eine kleine Spielerei von Bernhard <a href="http://wiki.piratenpartei.at/wiki/Benutzer:Burnoutberni">'burnoutberni'</a> Hayden.</p>
-				<p>Datenquelle: <a href="http://lqfb.piratenpartei.at">http://lqfb.piratenpartei.at</a></p>
+				<p>Datenquelle: <a href="https://lqfb.piratenpartei.at">https://lqfb.piratenpartei.at</a> &bull; <a href="https://lfapi.piratenpartei.at">https://lfapi.piratenpartei.at</a></p>
       </footer>
 
     </div><!--/.fluid-container-->
