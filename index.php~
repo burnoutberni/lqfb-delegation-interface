@@ -76,8 +76,6 @@ if($deleg_area != "" && $deleg_member != ""){
 	$buffer = curl_exec($ch);
 }
 
-include 'fetch.php';
-
 //Custom Sortierfunktion 2
 function cmp($a,$b){
     //get which string is less or 0 if both are the same
