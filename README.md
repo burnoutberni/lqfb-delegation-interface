@@ -7,3 +7,4 @@ Easy-to-use interface for delegations in LiquidFeedback
 * PHP
 * On client side: Javascript-enabled browser
 * [LiquidFeedback](http://www.liquidfeedback.org) + lfapi ;) 
+
